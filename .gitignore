@@ -1,0 +1,15 @@
+# Built binary
+/watch
+
+# Rust/go build dirs
+/target
+
+# Vite output, except the placeholder that keeps go:embed compiling
+web/dist/*
+!web/dist/.gitkeep
+web/node_modules/
+
+# Runtime data (uuid, thumbnails)
+/data
+
+.DS_Store
