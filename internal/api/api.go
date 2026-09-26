@@ -50,6 +50,11 @@ func (s *Server) Handler() http.Handler {
 	// URLs whose path carries the extension picky renderers want ({id}
 	// matches a whole dotted segment, which item() strips back down).
 	mux.HandleFunc("GET /dlna/device.xml", s.deviceDescription)
+	mux.HandleFunc("GET /dlna/icon.png", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "image/png")
+		w.Header().Set("Cache-Control", "max-age=86400")
+		_, _ = w.Write(dlna.IconPNG())
+	})
 	mux.HandleFunc("GET /dlna/cds.xml", func(w http.ResponseWriter, r *http.Request) {
 		xmlBody(w, dlna.ContentDirectoryXML())
 	})

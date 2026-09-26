@@ -4,7 +4,6 @@ package main
 
 import (
 	crand "crypto/rand"
-	"encoding/binary"
 	"flag"
 	"fmt"
 	"log"
@@ -80,17 +79,52 @@ func defaultMoviesDir() string {
 	return filepath.Join(home, "Movies")
 }
 
+// deviceUUID keeps one canonical UUID per machine. Renderers (cling-based
+// stacks in particular) validate the UDN format, so a malformed id from an
+// earlier build gets regenerated instead of persisting forever.
 func deviceUUID(path string) string {
 	if bytes, err := os.ReadFile(path); err == nil {
-		if text := strings.TrimSpace(string(bytes)); text != "" {
+		if text := strings.TrimSpace(string(bytes)); text != "" && canonicalUUID(text) {
 			return text
 		}
 	}
-	id := fmt.Sprintf("%x-%x-%x-%x-%x", randUint(), randUint(), randUint(), randUint(), randUint())
+	id := canonical()
 	if err := os.WriteFile(path, []byte(id), 0o600); err != nil {
 		log.Printf("could not persist the device uuid: %v", err)
 	}
 	return id
+}
+
+// canonical is the 8-4-4-4-12 shape with the version and variant bits set,
+// like any other UUID v4.
+func canonical() string {
+	b := make([]byte, 16)
+	if _, err := crand.Read(b); err != nil {
+		log.Fatalf("read randomness: %v", err)
+	}
+	b[6] = (b[6] & 0x0f) | 0x40
+	b[8] = (b[8] & 0x3f) | 0x80
+	return fmt.Sprintf("%08x-%04x-%04x-%04x-%012x",
+		b[0:4], b[4:6], b[6:8], b[8:10], b[10:16])
+}
+
+func canonicalUUID(s string) bool {
+	parts := strings.Split(s, "-")
+	if len(parts) != 5 {
+		return false
+	}
+	lengths := []int{8, 4, 4, 4, 12}
+	for i, part := range parts {
+		if len(part) != lengths[i] {
+			return false
+		}
+		for _, ch := range part {
+			if !(ch >= '0' && ch <= '9' || ch >= 'a' && ch <= 'f') {
+				return false
+			}
+		}
+	}
+	return true
 }
 
 func countOf(manager *library.Manager) int {
@@ -98,14 +132,4 @@ func countOf(manager *library.Manager) int {
 		return len(lib.Items)
 	}
 	return 0
-}
-
-// randUint feeds the UDN once, on first boot; crypto/rand is the honest
-// source and never blocks like a full read of /dev/urandom would.
-func randUint() uint32 {
-	b := make([]byte, 4)
-	if _, err := crand.Read(b); err != nil {
-		return uint32(time.Now().UnixNano())
-	}
-	return binary.LittleEndian.Uint32(b)
 }

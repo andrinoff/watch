@@ -49,6 +49,14 @@ func DeviceXML(base, uuid, friendlyName string) string {
     <modelName>watch</modelName>
     <modelNumber>1.0</modelNumber>
     <UDN>uuid:%s</UDN>
+    <iconList>
+      <icon>
+        <mimetype>image/png</mimetype>
+        <width>240</width><height>240</height>
+        <depth>24</depth>
+        <url>%s/dlna/icon.png</url>
+      </icon>
+    </iconList>
     <serviceList>
       <service>
         <serviceType>urn:schemas-upnp-org:service:ContentDirectory:1</serviceType>
@@ -66,7 +74,7 @@ func DeviceXML(base, uuid, friendlyName string) string {
       </service>
     </serviceList>
   </device>
-</root>`, xmlEsc(friendlyName), xmlEsc(friendlyName), uuid, base, base, base, base, base, base)
+</root>`, xmlEsc(friendlyName), xmlEsc(friendlyName), uuid, base, base, base, base, base, base, base)
 }
 
 // The ConnectionManager description: three trivial actions renderers call.
@@ -349,9 +357,6 @@ func parseSOAPAction(body []byte) (string, map[string]string) {
 		case xml.EndElement:
 			depth--
 		}
-	}
-	if action == "GetSearchCapabilities" || action == "GetSortCapabilities" || action == "GetSystemUpdateID" {
-		return action, args
 	}
 	return action, args
 }
